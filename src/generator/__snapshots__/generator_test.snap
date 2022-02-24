@@ -1,15 +1,15 @@
 
 [TestNormal - 1]
 namespace some {
+  export enum Status {
+    Todo = 0,
+    Done = 1,
+    Pending = 2,
+    InProgress = 3,
+  }
   export enum Sex {
     Female = 'female',
     Male = 'male',
-  }
-  export enum Status {
-    Pending = 2,
-    InProgress = 3,
-    Todo = 0,
-    Done = 1,
   }
 }
 

@@ -3,15 +3,16 @@
 ast.File{
     Name: "some",
     Body: {
-        ast.TypeDeclaration{Id:"Status", Kind:"string"},
+        ast.TypeDeclaration{Id:"Status", Kind:"int"},
         ast.ConstDeclaration{
             Declarators: {
                 {Kind:"Status", Id:"Todo", Value:"iota"},
                 {Kind:"", Id:"Done", Value:""},
+                {Kind:"", Id:"Pending", Value:""},
                 {Kind:"", Id:"InProgress", Value:""},
             },
         },
-        ast.TypeDeclaration{Id:"Sex", Kind:"int"},
+        ast.TypeDeclaration{Id:"Sex", Kind:"string"},
         ast.ConstDeclaration{
             Declarators: {
                 {Kind:"Sex", Id:"Female", Value:"female"},
