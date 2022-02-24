@@ -20,7 +20,7 @@ func (reader *Reader) SkipSpace() {
 		row, col := reader.row, reader.col
 		char, err := reader.Next()
 
-		if err != nil || string(char) != " " {
+		if err != nil || (string(char) != " " && !IsIllegalChar(reader.charInByte)) {
 			reader.row, reader.col = row, col
 			break
 		}
@@ -39,9 +39,13 @@ func (reader *Reader) Next() (byte, error) {
 
 	reader.col += 1
 
-	if reader.col == len(reader.lines[reader.row]) {
+	for reader.col >= len(reader.lines[reader.row]) || len(reader.lines[reader.row]) == 0 {
 		reader.row += 1
 		reader.col = 0
+
+		if reader.isOverflow() {
+			return 0, errors.New("Overflow")
+		}
 	}
 
 	if reader.isOverflow() {
@@ -69,7 +73,7 @@ func (reader *Reader) Back() {
 }
 
 func (reader *Reader) isOverflow() bool {
-	return reader.row >= len(reader.lines)
+	return reader.row >= len(reader.lines) || (reader.row == len(reader.lines)-1 && reader.col >= len(reader.lines[reader.row]))
 }
 
 func (reader *Reader) ReportLineError() bool {
@@ -83,11 +87,11 @@ func readLines(s []byte) [][]byte {
 		line := []byte{}
 
 		for ; i < len(s); i++ {
-			if s[i] == "\n"[0] {
+			line = append(line, s[i])
+
+			if string(s[i]) == "\n" {
 				break
 			}
-
-			line = append(line, s[i])
 		}
 
 		lines = append(lines, line)

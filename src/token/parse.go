@@ -95,7 +95,7 @@ func (parser *Parser) collectString() string {
 	for {
 		charInByte, err := parser.Reader.Next()
 
-		if parser.Reader.char == "\n" {
+		if IsIllegalChar(parser.Reader.charInByte) {
 			parser.Reader.ReportLineError()
 		}
 
@@ -182,6 +182,7 @@ func NewParser(s string) Parser {
 
 func (parser *Parser) Parse() []Token {
 	for {
+		parser.Reader.SkipSpace()
 		charInByte, err := parser.Reader.Next()
 
 		if err != nil {
