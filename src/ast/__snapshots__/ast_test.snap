@@ -1,0 +1,23 @@
+
+[TestNormal - 1]
+ast.File{
+    Name: "some",
+    Body: {
+        ast.TypeDeclaration{Id:"Status", Kind:"string"},
+        ast.ConstDeclaration{
+            Declarators: {
+                {Kind:"Status", Id:"Todo", Value:"iota"},
+                {Kind:"", Id:"Done", Value:""},
+                {Kind:"", Id:"InProgress", Value:""},
+            },
+        },
+        ast.TypeDeclaration{Id:"Sex", Kind:"int"},
+        ast.ConstDeclaration{
+            Declarators: {
+                {Kind:"Sex", Id:"Female", Value:"female"},
+                {Kind:"Sex", Id:"Male", Value:"male"},
+            },
+        },
+    },
+}
+---

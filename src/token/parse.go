@@ -50,6 +50,8 @@ func (parser *Parser) setCurrentTokenType(t TokenType) {
 		parser.CurrentToken.Value = "("
 	} else if t == RightParentheses {
 		parser.CurrentToken.Value = ")"
+	} else if t == Semicolon {
+		parser.CurrentToken.Value = ";"
 	}
 
 	parser.appendToken()
@@ -90,7 +92,7 @@ func (parser *Parser) collectIdentifier() string {
 }
 
 func (parser *Parser) collectString() string {
-	result := []byte{parser.Reader.charInByte}
+	result := []byte{}
 
 	for {
 		charInByte, err := parser.Reader.Next()
@@ -99,8 +101,7 @@ func (parser *Parser) collectString() string {
 			parser.Reader.ReportLineError()
 		}
 
-		if err != nil || string(charInByte) != "\"" {
-			parser.Reader.Back()
+		if err != nil || string(charInByte) == "\"" {
 			break
 		}
 
@@ -165,8 +166,10 @@ func (parser *Parser) getIdentifierTokenType(id string) TokenType {
 		return IntType
 	case "iota":
 		return IOTA
+	case "package":
+		return Package
 	default:
-		return Indetifier
+		return Identifier
 	}
 }
 
@@ -196,6 +199,8 @@ func (parser *Parser) Parse() []Token {
 			} else {
 				parser.setCurrentTokenType(Unknown)
 			}
+		case ";":
+			parser.setCurrentTokenType(Semicolon)
 		case "(":
 			if parser.PrevToken.Type == Const {
 				parser.setCurrentTokenType(LeftParentheses)
@@ -221,8 +226,8 @@ func (parser *Parser) Parse() []Token {
 				parser.setCurrentTokenType(Unknown)
 			}
 		case "\"":
-			parser.setCurrentTokenType(StringValue)
 			parser.CurrentToken.Value = parser.collectString()
+			parser.setCurrentTokenType(StringValue)
 		default:
 			if IsDigit(charInByte) {
 				parser.CurrentToken.Value = parser.collectInt()
