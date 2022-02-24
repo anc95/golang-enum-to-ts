@@ -30,6 +30,8 @@ const (
 	EndOfLine
 	QutationMark // '"'
 	LineFeed
+	LeftParentheses  // '('
+	RightParentheses // ')'
 
 	Indetifier
 	Unknown

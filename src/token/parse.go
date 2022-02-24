@@ -5,125 +5,236 @@ type Status int
 type Token struct {
 	Value string
 	Type  TokenType
-	Next  *Token
-	Prev  *Token
+	Start [2]int
+	End   [2]int
 }
 
-func isDigit(b byte) bool {
-	return b >= 80 && b <= 57
+type Parser struct {
+	CurrentToken       Token
+	PrevToken          Token
+	Tokens             []Token
+	Reader             Reader
+	inConstDeclaration bool
 }
 
-func isLetterOrSlash(b byte) bool {
-	return isDigit(b) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122) || b == 95
+func (parser *Parser) appendToken() {
+	parser.Tokens = append(parser.Tokens, parser.CurrentToken)
+	parser.PrevToken = parser.CurrentToken
+	parser.CurrentToken = Token{Type: Initial}
+	parser.Reader.SkipSpace()
 }
 
-func isIllegalChar(b byte) bool {
-	// reference: https://zh.wikipedia.org/wiki/ASCII
-	return b <= 31
-}
+func (parser *Parser) setCurrentTokenType(t TokenType) {
+	parser.CurrentToken.Type = t
+	parser.CurrentToken.Start = [2]int{parser.Reader.row, parser.Reader.col}
 
-func Parse(s string) []Token {
-	reader := NewReader(s)
-	tokenList := []Token{}
-	currentToken := Token{Type: Initial}
+	if t == Unknown {
+		parser.CurrentToken.Start = [2]int{parser.Reader.row, 0}
 
-	var next func() (string, byte, error)
+		index := len(parser.Tokens) - 1
 
-	appendToken := func() {
-		prevToken := &currentToken
-		tokenList = append(tokenList, currentToken)
-		currentToken = Token{Type: Initial, Prev: prevToken}
-		prevToken.Next = &currentToken
-	}
+		for index >= 0 {
+			if parser.Tokens[index].Start[0] != parser.Reader.row {
+				break
+			}
 
-	maybeComment := func(char *string) {
-		nextChar, _, _ := next()
-
-		if nextChar == "/" {
-			currentToken.Type = LineComment
-		} else if nextChar == "*" {
-			currentToken.Type = BlockCommentStart
-		} else {
-			currentToken.Type = Unknown
+			index -= 1
 		}
 
-		*char += nextChar
+		parser.Tokens = parser.Tokens[0 : index+1]
+
+		parser.CurrentToken.Value = parser.collectUnknown()
+	} else if t == Assignment {
+		parser.CurrentToken.Value = "="
+	} else if t == LeftParentheses {
+		parser.CurrentToken.Value = "("
+	} else if t == RightParentheses {
+		parser.CurrentToken.Value = ")"
 	}
 
-	for {
-		_, err := reader.Next()
+	parser.appendToken()
+}
 
-		char := reader.char
-		charByte := reader.charInByte
+func (parser *Parser) collectInt() string {
+	result := []byte{parser.Reader.charInByte}
+
+	for {
+		charInByte, err := parser.Reader.Next()
+
+		if err != nil || !IsDigit(charInByte) {
+			parser.Reader.Back()
+			break
+		}
+
+		result = append(result, parser.Reader.charInByte)
+	}
+
+	return string(result)
+}
+
+func (parser *Parser) collectIdentifier() string {
+	result := []byte{parser.Reader.charInByte}
+
+	for {
+		charInByte, err := parser.Reader.Next()
+
+		if err != nil || !IsLetterOrSlash(charInByte) {
+			parser.Reader.Back()
+			break
+		}
+
+		result = append(result, parser.Reader.charInByte)
+	}
+
+	return string(result)
+}
+
+func (parser *Parser) collectString() string {
+	result := []byte{parser.Reader.charInByte}
+
+	for {
+		charInByte, err := parser.Reader.Next()
+
+		if IsIllegalChar(parser.Reader.charInByte) {
+			parser.Reader.ReportLineError()
+		}
+
+		if err != nil || string(charInByte) != "\"" {
+			parser.Reader.Back()
+			break
+		}
+
+		result = append(result, parser.Reader.charInByte)
+	}
+
+	return string(result)
+}
+
+func (parser *Parser) collectLineComment() string {
+	row := parser.Reader.lines[parser.Reader.row]
+	result := string(row[parser.Reader.col+1:])
+
+	parser.Reader.SkipLine()
+
+	return result
+}
+
+func (parser *Parser) collectUnknown() string {
+	parser.Reader.col = -1
+	result := []byte{}
+	firstFlag := true
+
+	for {
+		_, err := parser.Reader.Next()
+
+		if err != nil || (!firstFlag && IsLetterOrSlash(parser.Reader.charInByte) && parser.Reader.col == 0) {
+			parser.Reader.Back()
+			break
+		}
+
+		firstFlag = false
+
+		result = append(result, parser.Reader.charInByte)
+	}
+
+	return string(result)
+}
+
+func (parser *Parser) getIdentifierTokenType(id string) TokenType {
+	switch id {
+	case "const":
+		parser.Reader.SkipSpace()
+		_, err := parser.Reader.Next()
+
+		if err != nil {
+			parser.Reader.ReportLineError()
+		}
+
+		if parser.Reader.char != "(" {
+			return Unknown
+		}
+
+		parser.Reader.Back()
+		parser.inConstDeclaration = true
+		return Const
+	case "type":
+		return Type
+	case "string":
+		return StringType
+	case "int":
+		return IntType
+	case "iota":
+		return IOTA
+	default:
+		return Indetifier
+	}
+}
+
+func NewParser(s string) Parser {
+	reader := NewReader(s)
+
+	return Parser{
+		Reader:       *reader,
+		CurrentToken: Token{Type: Initial},
+		Tokens:       []Token{},
+	}
+}
+
+func (parser *Parser) Parse() []Token {
+	for {
+		parser.Reader.SkipSpace()
+		charInByte, err := parser.Reader.Next()
 
 		if err != nil {
 			break
 		}
 
-		switch char {
-		case "/":
-			if char == "/" && currentToken.Type != StringValue && currentToken.Type != LineComment || currentToken.Type != BlockCommentStart {
-				maybeComment(&char)
-				continue
-			}
-		}
-
-		switch currentToken.Type {
-		case Initial:
-			if isLetterOrSlash(charByte) {
-				currentToken.Type = Indetifier
-			} else if isDigit(charByte) {
-				currentToken.Type = IntValue
-			}
-
-			currentToken.Value = char
-		case IntValue:
-			if isIllegalChar(charByte) {
-				appendToken()
-				// skipSpace()
-				break
-			}
-
-			if isLetterOrSlash(charByte) {
-				currentToken.Type = Indetifier
+		switch string(charInByte) {
+		case "=":
+			if parser.inConstDeclaration {
+				parser.setCurrentTokenType(Assignment)
 			} else {
-				// error()
+				parser.setCurrentTokenType(Unknown)
+			}
+		case "(":
+			if parser.PrevToken.Type == Const {
+				parser.setCurrentTokenType(LeftParentheses)
+			} else {
+				parser.setCurrentTokenType(Unknown)
+			}
+		case ")":
+			parser.setCurrentTokenType(RightParentheses)
+			parser.inConstDeclaration = false
+		case "/":
+			nextCharInByte, err := parser.Reader.Next()
+
+			if err != nil {
+				parser.Reader.ReportLineError()
 			}
 
-			currentToken.Value += char
-		case StringValue:
-			if char == "\"" {
-				tokenList = append(tokenList, currentToken)
-				// skipSpace()
-				break
+			if string(nextCharInByte) == "/" {
+				parser.CurrentToken.Value = parser.collectLineComment()
+				parser.setCurrentTokenType(LineComment)
+			} else if string(nextCharInByte) == "*" {
+				parser.setCurrentTokenType(LeftParentheses)
+			} else {
+				parser.setCurrentTokenType(Unknown)
 			}
-
-			if isIllegalChar(charByte) {
-				// error()
+		case "\"":
+			parser.setCurrentTokenType(StringValue)
+			parser.CurrentToken.Value = parser.collectString()
+		default:
+			if IsDigit(charInByte) {
+				parser.CurrentToken.Value = parser.collectInt()
+				parser.setCurrentTokenType(IntValue)
+			} else if IsLetterOrSlash(charInByte) {
+				parser.CurrentToken.Value = parser.collectIdentifier()
+				parser.setCurrentTokenType(parser.getIdentifierTokenType(parser.CurrentToken.Value))
+			} else {
+				parser.setCurrentTokenType(Unknown)
 			}
-		case Indetifier:
-			if isIllegalChar(charByte) || char == " " {
-				switch currentToken.Value {
-				case "type":
-					currentToken.Type = Type
-				case "const":
-					currentToken.Type = Const
-				case "package":
-					currentToken.Type = Package
-				}
-
-				appendToken()
-				break
-			}
-
-			if isLetterOrSlash(charByte) {
-				currentToken.Value += char
-				break
-			}
-
-			// error()
 		}
 	}
 
-	return tokenList
+	return parser.Tokens
 }
