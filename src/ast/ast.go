@@ -83,7 +83,7 @@ func (a *AstGenerator) readTypeDeclaration() TypeDeclaration {
 
 	next, _ = a.nextToken(true)
 
-	if next.Type != token.IntType {
+	if next.Type == token.IntType {
 		d.Kind = Int
 	} else {
 		d.Kind = String
@@ -134,6 +134,8 @@ func (a *AstGenerator) readConstDeclaration() ConstDeclaration {
 			if a.currentToken.Type == token.RightParentheses {
 				break
 			}
+
+			a.backToken()
 		}
 
 		a.matchNextLine()
@@ -187,4 +189,8 @@ func (a *AstGenerator) Gen() File {
 	}
 
 	return file
+}
+
+func NewAstGenerator(tokens []token.Token) AstGenerator {
+	return AstGenerator{Tokens: tokens, index: -1}
 }
