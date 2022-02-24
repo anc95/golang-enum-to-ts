@@ -1,38 +1,34 @@
 package token
 
-type TokenType int
+type TokenType string
 
 const (
-	Initial TokenType = iota
+	Initial TokenType = "Initial"
 	// === keyword ===
-	Type
-	Package
-	Const
+	Type    = "Type"
+	Package = "Package"
+	Const   = "Const"
 
 	// === type keyword ===
-	IntType
-	StringType
+	IntType    = "IntType"
+	StringType = "StringType"
 
 	// === const value ===
-	IOTA
+	IOTA = "IOTA"
 
 	// vairable
-	IntValue
-	StringValue
+	IntValue    = "IntValue"
+	StringValue = "StringValue"
 
 	// ==== punctuation ===
-	Assignment        // '='
-	LineComment       // '//'
-	BlockCommentStart // '/*'
-	BlockCommentEnd   // '*/'
-	Div               // '/'
-	EndOfFile
-	EndOfLine
-	QutationMark // '"'
-	LineFeed
-	LeftParentheses  // '('
-	RightParentheses // ')'
+	Assignment       = "Assignment"       // '='
+	Semicolon        = "Semicolon"        // ";"
+	LineComment      = "LineComment"      // '//'
+	BlockComment     = "BlockComment"     // '/* */'
+	QutationMark     = "QutationMark"     // '"'
+	LeftParentheses  = "LeftParentheses"  // '('
+	RightParentheses = "RightParentheses" // ')'
 
-	Indetifier
-	Unknown
+	Identifier = "Identifier"
+	Unknown    = "Unknown"
 )
