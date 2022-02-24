@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -16,9 +17,11 @@ type Reader struct {
 
 func (reader *Reader) SkipSpace() {
 	for {
+		row, col := reader.row, reader.col
 		char, err := reader.Next()
 
 		if err != nil || string(char) != " " {
+			reader.row, reader.col = row, col
 			break
 		}
 	}
@@ -26,10 +29,21 @@ func (reader *Reader) SkipSpace() {
 
 func (reader *Reader) SkipLine() {
 	reader.row += 1
-	reader.col = 0
+	reader.col = -1
 }
 
 func (reader *Reader) Next() (byte, error) {
+	if reader.isOverflow() {
+		return 0, errors.New("Overflow")
+	}
+
+	reader.col += 1
+
+	if reader.col == len(reader.lines[reader.row]) {
+		reader.row += 1
+		reader.col = 0
+	}
+
 	if reader.isOverflow() {
 		return 0, errors.New("Overflow")
 	}
@@ -39,18 +53,27 @@ func (reader *Reader) Next() (byte, error) {
 	reader.char = string(char)
 	reader.charInByte = char
 
-	reader.col += 1
-
-	if reader.col == len(reader.lines[reader.row]) {
-		reader.row += 1
-		reader.col = 0
-	}
-
 	return char, nil
+}
+
+func (reader *Reader) Back() {
+	if reader.col == 0 {
+		reader.row -= 1
+
+		if reader.row >= 0 {
+			reader.col = len(reader.lines[reader.row]) - 1
+		}
+	} else {
+		reader.col -= 1
+	}
 }
 
 func (reader *Reader) isOverflow() bool {
 	return reader.row >= len(reader.lines)
+}
+
+func (reader *Reader) ReportLineError() bool {
+	panic(fmt.Sprintf("Unexpect token: %s", string(reader.lines[reader.row])))
 }
 
 func readLines(s []byte) [][]byte {
@@ -59,7 +82,7 @@ func readLines(s []byte) [][]byte {
 	for i := 0; i < len(s); i++ {
 		line := []byte{}
 
-		for {
+		for ; i < len(s); i++ {
 			if s[i] == "\n"[0] {
 				break
 			}
@@ -74,8 +97,8 @@ func readLines(s []byte) [][]byte {
 }
 
 func NewReader(fileOrContent string) *Reader {
-	file, err := os.Open("./main.go")
-	content := []byte{}
+	file, err := os.Open(fileOrContent)
+	var content []byte
 
 	if err == nil {
 		defer file.Close()
@@ -86,6 +109,5 @@ func NewReader(fileOrContent string) *Reader {
 	}
 
 	lines := readLines(content)
-
-	return &Reader{row: 0, col: 0, lines: lines}
+	return &Reader{row: 0, col: -1, lines: lines}
 }
