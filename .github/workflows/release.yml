@@ -1,0 +1,24 @@
+name: Go
+
+on:
+  release
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set env
+      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Test
+      run: go test -v ./...
+      
+    - name: Publish
+      run: GOPROXY=proxy.golang.org go list -m github.com/anc95/golang-enum-to-ts@$RELEASE_VERSION
