@@ -15,7 +15,7 @@ func TestNormal(t *testing.T) {
 	a := path.Join(wd, "../test-cases/normal.go")
 	parser := token.NewParser(a)
 	tokens := parser.Parse()
-	ast := AstGenerator{Tokens: tokens, index: -1}
+	ast := NewAstGenerator(tokens)
 
 	result := ast.Gen()
 

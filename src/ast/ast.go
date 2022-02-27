@@ -11,20 +11,29 @@ type AstGenerator struct {
 	Tokens       []token.Token
 	index        int
 	currentToken token.Token
+	usedComments map[token.Token]bool
 }
 
 func (a *AstGenerator) nextToken(reportErrorWhenIsNull bool) (token.Token, error) {
-	a.index += 1
+	for i := a.index + 1; ; i++ {
+		if i >= len(a.Tokens) {
+			if reportErrorWhenIsNull {
+				a.reportTokenError()
+			}
 
-	if a.index >= len(a.Tokens) {
-		if reportErrorWhenIsNull {
-			a.reportTokenError()
+			return token.Token{}, errors.New("Overflow")
 		}
 
-		return token.Token{}, errors.New("Overflow")
-	}
+		tok := a.Tokens[i]
 
-	a.currentToken = a.Tokens[a.index]
+		if tok.Type == token.LineComment {
+			continue
+		}
+
+		a.index = i
+		a.currentToken = a.Tokens[a.index]
+		break
+	}
 
 	return a.currentToken, nil
 }
@@ -75,8 +84,50 @@ func (a *AstGenerator) initFile() File {
 	return file
 }
 
+func (a *AstGenerator) resolveComments(node *BaseDeclaration, leading bool) {
+	currentToken := a.currentToken
+	comments := []Comment{}
+
+	if leading {
+		for i := a.index - 1; i >= 0; i-- {
+			tok := a.Tokens[i]
+
+			if tok.Type == token.LineComment && !a.usedComments[tok] {
+				comment := Comment{}
+				comment.Value = tok.Value
+				comments = append([]Comment{comment}, comments...)
+				a.usedComments[tok] = true
+			} else {
+				break
+			}
+		}
+
+		node.LeadingComments = comments
+	} else {
+		for i := a.index + 1; i < len(a.Tokens); i++ {
+			tok := a.Tokens[i]
+
+			if tok.Start[0] != currentToken.Start[0] {
+				break
+			}
+
+			if tok.Type == token.LineComment {
+				comments = []Comment{{Value: tok.Value}}
+				a.usedComments[tok] = true
+				break
+			}
+
+			break
+		}
+
+		node.TrailingComments = comments
+	}
+}
+
 func (a *AstGenerator) readTypeDeclaration() TypeDeclaration {
 	d := TypeDeclaration{}
+
+	a.resolveComments(&d.BaseDeclaration, true)
 
 	next, _ := a.nextToken(true)
 	d.Id = next.Value
@@ -88,6 +139,8 @@ func (a *AstGenerator) readTypeDeclaration() TypeDeclaration {
 	} else {
 		d.Kind = String
 	}
+
+	a.resolveComments(&d.BaseDeclaration, false)
 
 	return d
 }
@@ -107,6 +160,7 @@ func (a *AstGenerator) readConstDeclaration() ConstDeclaration {
 			break
 		}
 
+		a.resolveComments(&decl.BaseDeclaration, true)
 		a.match(token.Identifier)
 		prev := a.currentToken
 		decl.Id = a.currentToken.Value
@@ -125,11 +179,13 @@ func (a *AstGenerator) readConstDeclaration() ConstDeclaration {
 
 			if a.currentToken.Type == token.StringValue || a.currentToken.Type == token.IntValue || a.currentToken.Type == token.IOTA {
 				decl.Value = a.currentToken.Value
+				a.resolveComments(&decl.BaseDeclaration, false)
 				declarators = append(declarators, decl)
 			} else {
 				a.reportTokenError()
 			}
 		} else {
+			a.resolveComments(&decl.BaseDeclaration, false)
 			declarators = append(declarators, decl)
 			if a.currentToken.Type == token.RightParentheses {
 				break
@@ -141,7 +197,7 @@ func (a *AstGenerator) readConstDeclaration() ConstDeclaration {
 		a.matchNextLine()
 	}
 
-	return ConstDeclaration{declarators}
+	return ConstDeclaration{Declarators: declarators}
 }
 
 func (a *AstGenerator) match(t token.TokenType) {
@@ -152,6 +208,10 @@ func (a *AstGenerator) match(t token.TokenType) {
 
 func (a *AstGenerator) matchNextLine() {
 	next := a.Tokens[a.index+1]
+
+	if next.Type == token.LineComment {
+		next = a.Tokens[a.index+2]
+	}
 
 	if next.Type == token.Semicolon {
 		a.nextToken(true)
@@ -192,5 +252,5 @@ func (a *AstGenerator) Gen() File {
 }
 
 func NewAstGenerator(tokens []token.Token) AstGenerator {
-	return AstGenerator{Tokens: tokens, index: -1}
+	return AstGenerator{Tokens: tokens, index: -1, usedComments: map[token.Token]bool{}}
 }

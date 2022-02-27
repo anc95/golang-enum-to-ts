@@ -2,14 +2,19 @@
 [TestNormal - 1]
 namespace some {
   export enum Sex {
+    // dsdas
     Female = 'female',
-    Male = 'male',
+    Male = 'male', //hhh
+
   }
   export enum Status {
-    Todo = 0,
+    // 已完成
     Done = 1,
-    Pending = 2,
     InProgress = 3,
+    Pending = 2,
+    // 代办
+    Todo = 0, // 59todo
+
   }
 }
 
