@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/anc95/golang-enum-to-ts/src/ast"
@@ -75,10 +76,16 @@ func GenerateTS(f ast.File) string {
 	enumValue := getEnum(f)
 	result := ""
 
-	for key, val := range enumValue {
+	keys := make([]string, 0)
+	for k, _ := range enumValue {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
 		ret := ""
 
-		for k, v := range val {
+		for k, v := range enumValue[key] {
 			if ret != "" {
 				ret += "\n"
 			}

@@ -61,7 +61,7 @@ func (reader *Reader) Next() (byte, error) {
 }
 
 func (reader *Reader) Back() {
-	if reader.col == 0 {
+	if reader.col <= 0 {
 		reader.row -= 1
 
 		if reader.row >= 0 {
