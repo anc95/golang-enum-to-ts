@@ -3,20 +3,105 @@
 ast.File{
     Name: "some",
     Body: {
-        ast.TypeDeclaration{Id:"Status", Kind:"int"},
+        ast.TypeDeclaration{
+            BaseDeclaration: ast.BaseDeclaration{
+                LeadingComments: {
+                    {Value:" hello\n"},
+                },
+                TrailingComments: {
+                },
+            },
+            Id:   "Status",
+            Kind: "int",
+        },
         ast.ConstDeclaration{
-            Declarators: {
-                {Kind:"Status", Id:"Todo", Value:"iota"},
-                {Kind:"", Id:"Done", Value:""},
-                {Kind:"", Id:"Pending", Value:""},
-                {Kind:"", Id:"InProgress", Value:""},
+            BaseDeclaration: ast.BaseDeclaration{},
+            Declarators:     {
+                {
+                    BaseDeclaration: ast.BaseDeclaration{
+                        LeadingComments: {
+                            {Value:" 代办\n"},
+                        },
+                        TrailingComments: {
+                            {Value:" 59todo\n"},
+                        },
+                    },
+                    Kind:  "Status",
+                    Id:    "Todo",
+                    Value: "iota",
+                },
+                {
+                    BaseDeclaration: ast.BaseDeclaration{
+                        LeadingComments: {
+                            {Value:" 已完成\n"},
+                        },
+                        TrailingComments: {
+                        },
+                    },
+                    Kind:  "",
+                    Id:    "Done",
+                    Value: "",
+                },
+                {
+                    BaseDeclaration: ast.BaseDeclaration{
+                        LeadingComments: {
+                        },
+                        TrailingComments: {
+                        },
+                    },
+                    Kind:  "",
+                    Id:    "Pending",
+                    Value: "",
+                },
+                {
+                    BaseDeclaration: ast.BaseDeclaration{
+                        LeadingComments: {
+                        },
+                        TrailingComments: {
+                        },
+                    },
+                    Kind:  "",
+                    Id:    "InProgress",
+                    Value: "",
+                },
             },
         },
-        ast.TypeDeclaration{Id:"Sex", Kind:"string"},
+        ast.TypeDeclaration{
+            BaseDeclaration: ast.BaseDeclaration{
+                LeadingComments: {
+                },
+                TrailingComments: {
+                },
+            },
+            Id:   "Sex",
+            Kind: "string",
+        },
         ast.ConstDeclaration{
-            Declarators: {
-                {Kind:"Sex", Id:"Female", Value:"female"},
-                {Kind:"Sex", Id:"Male", Value:"male"},
+            BaseDeclaration: ast.BaseDeclaration{},
+            Declarators:     {
+                {
+                    BaseDeclaration: ast.BaseDeclaration{
+                        LeadingComments: {
+                        },
+                        TrailingComments: {
+                        },
+                    },
+                    Kind:  "Sex",
+                    Id:    "Female",
+                    Value: "female",
+                },
+                {
+                    BaseDeclaration: ast.BaseDeclaration{
+                        LeadingComments: {
+                        },
+                        TrailingComments: {
+                            {Value:"hhh\n"},
+                        },
+                    },
+                    Kind:  "Sex",
+                    Id:    "Male",
+                    Value: "male",
+                },
             },
         },
     },
