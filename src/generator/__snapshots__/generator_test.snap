@@ -2,7 +2,6 @@
 [TestNormal - 1]
 namespace some {
   export enum Sex {
-    // dsdas
     Female = 'female',
     Male = 'male', //hhh
 

@@ -82,7 +82,6 @@ ast.File{
                 {
                     BaseDeclaration: ast.BaseDeclaration{
                         LeadingComments: {
-                            {Value:" dsdas\n"},
                         },
                         TrailingComments: {
                         },
