@@ -1,5 +1,6 @@
 package some
 
+// hello
 type Status int
 
 const (

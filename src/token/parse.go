@@ -26,9 +26,13 @@ func (parser *Parser) appendToken() {
 
 func (parser *Parser) setCurrentTokenType(t TokenType) {
 	parser.CurrentToken.Type = t
-	parser.CurrentToken.Start = [2]int{parser.Reader.row, parser.Reader.col}
 
-	if t == Unknown {
+	if len(parser.CurrentToken.Value) == 0 {
+		parser.CurrentToken.Start = [2]int{parser.Reader.row, parser.Reader.col}
+	}
+
+	switch t {
+	case Unknown:
 		parser.CurrentToken.Start = [2]int{parser.Reader.row, 0}
 
 		index := len(parser.Tokens) - 1
@@ -44,16 +48,31 @@ func (parser *Parser) setCurrentTokenType(t TokenType) {
 		parser.Tokens = parser.Tokens[0 : index+1]
 
 		parser.CurrentToken.Value = parser.collectUnknown()
-	} else if t == Assignment {
+	case Assignment:
 		parser.CurrentToken.Value = "="
-	} else if t == LeftParentheses {
+	case LeftParentheses:
 		parser.CurrentToken.Value = "("
-	} else if t == RightParentheses {
+	case RightParentheses:
 		parser.CurrentToken.Value = ")"
-	} else if t == Semicolon {
+	case Semicolon:
 		parser.CurrentToken.Value = ";"
+	case LineComment:
+		parser.CurrentToken.Value = parser.collectLineComment()
+	case StringValue:
+		parser.CurrentToken.Value = parser.collectString()
+	case IntValue:
+		parser.CurrentToken.Value = parser.collectInt()
+	case Identifier:
+		if len(parser.CurrentToken.Value) > 0 {
+			break
+		}
+
+		parser.CurrentToken.Value = parser.collectIdentifier()
+		parser.setCurrentTokenType(parser.getIdentifierTokenType(parser.CurrentToken.Value))
+		return
 	}
 
+	parser.CurrentToken.End = [2]int{parser.Reader.row, parser.Reader.col}
 	parser.appendToken()
 }
 
@@ -116,6 +135,7 @@ func (parser *Parser) collectLineComment() string {
 	result := string(row[parser.Reader.col+1:])
 
 	parser.Reader.SkipLine()
+	parser.Reader.Back()
 
 	return result
 }
@@ -218,7 +238,6 @@ func (parser *Parser) Parse() []Token {
 			}
 
 			if string(nextCharInByte) == "/" {
-				parser.CurrentToken.Value = parser.collectLineComment()
 				parser.setCurrentTokenType(LineComment)
 			} else if string(nextCharInByte) == "*" {
 				parser.setCurrentTokenType(LeftParentheses)
@@ -226,15 +245,12 @@ func (parser *Parser) Parse() []Token {
 				parser.setCurrentTokenType(Unknown)
 			}
 		case "\"":
-			parser.CurrentToken.Value = parser.collectString()
 			parser.setCurrentTokenType(StringValue)
 		default:
 			if IsDigit(charInByte) {
-				parser.CurrentToken.Value = parser.collectInt()
 				parser.setCurrentTokenType(IntValue)
 			} else if IsLetterOrSlash(charInByte) {
-				parser.CurrentToken.Value = parser.collectIdentifier()
-				parser.setCurrentTokenType(parser.getIdentifierTokenType(parser.CurrentToken.Value))
+				parser.setCurrentTokenType(Identifier)
 			} else {
 				parser.setCurrentTokenType(Unknown)
 			}
